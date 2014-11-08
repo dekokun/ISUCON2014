@@ -2,9 +2,6 @@
 require_once 'limonade/lib/limonade.php';
 
 
-
-register_shutdown_function('__xhprof_save');
-
 function logging ($message) {
   file_put_contents('/tmp/hoge.log', $message, FILE_APPEND);
 }
