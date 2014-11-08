@@ -1,12 +1,4 @@
 <?php
-function __xhprof_save() {
-  $data = xhprof_disable();
-  $runs = new XHProfRuns_Default();
-  $runs->save_run($data, str_replace('/', '-', $_SERVER['REQUEST_URI']));
-}
-
-xhprof_enable();
-require_once '../vendor/autoload.php';
 require_once 'limonade/lib/limonade.php';
 
 
