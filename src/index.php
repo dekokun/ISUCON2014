@@ -16,9 +16,15 @@ register_shutdown_function('__xhprof_save');
 function configure() {
   option('base_uri', '/');
 
-  $redis = new Redis();
-  $redis->connect('10.11.54.113', 6379);
-  option('redis', $redis);
+  $redis = null;
+  option('redis', function() use (&$redis) {
+    if ($redis) {
+      return $redis;
+    }
+    $redis = new Redis();
+    $redis->connect('10.11.54.113', 6379);
+    return $redis;
+  });
 
   $config = [
   ];
@@ -107,11 +113,13 @@ function report_key($aid) {
 
 function next_ad_id() {
   $redis = option('redis');
+  $redis = $redis();
   return $redis->incr('isu4:ad-next');
 }
 
 function next_ad($slot) {
   $redis = option('redis');
+  $redis = $redis();
 
   $key = slot_key($slot);
 
@@ -132,6 +140,7 @@ function next_ad($slot) {
 
 function get_ad($slot, $id) {
   $redis = option('redis');
+  $redis = $redis();
 
   $key = ad_key($slot, $id);
   $ad = $redis->hgetall($key);
@@ -169,6 +178,7 @@ function decode_user_key($id) {
 
 function get_log($id) {
   $redis = option('redis');
+  $redis = $redis();
   if (! $logs = $redis->lrange(report_key($id), 0, -1)) {
     return [];
   }
@@ -230,6 +240,7 @@ dispatch_post('/slots/:slot/ads', function() {
   $key = ad_key($slot, $id);
 
   $redis = option('redis');
+  $redis = $redis();
   $type = isset($_POST['type']) ? $_POST['type'] : ($asset['type'] ?: 'video/mp4');
   $redis->hmset($key, [
     'slot' => $slot,
@@ -280,6 +291,7 @@ dispatch_get('/slots/:slot/ads/:id/asset', function() {
     $content_type = $ad['type'] ?: 'application/octet-stream';
     content_type($content_type);
     $redis = option('redis');
+    $redis = $redis();
     $data = $redis->get(asset_key($slot, $id));
 
     if (isset($_SERVER['HTTP_RANGE'])) {
@@ -325,6 +337,7 @@ dispatch_post('/slots/:slot/ads/:id/count', function() {
   $key = ad_key($slot, $id);
 
   $redis = option('redis');
+  $redis = $redis();
   if (!$redis->exists($key)) {
     status(404);
     return json(['error' => 'not_found']);
@@ -336,6 +349,7 @@ dispatch_post('/slots/:slot/ads/:id/count', function() {
 
 dispatch_get('/slots/:slot/ads/:id/redirect', function() {
   $redis = option('redis');
+  $redis = $redis();
   $slot = params('slot');
   $id = params('id');
   $ad = get_ad($slot, $id);
@@ -372,6 +386,7 @@ dispatch_get('/me/report', function() {
 
   $report = [];
   $redis = option('redis');
+  $redis = $redis();
   $ad_keys = $redis->smembers(advertiser_key($advertiser_id));
   foreach ($ad_keys as $ad_key) {
     $ad = $redis->hgetall($ad_key);
@@ -403,6 +418,7 @@ dispatch_get('/me/final_report', function() {
 
   $reports = [];
   $redis = option('redis');
+  $redis = $redis();
   $ad_keys = $redis->smembers(advertiser_key($advertiser_id));
 
   foreach ($ad_keys as $ad_key) {
@@ -445,6 +461,7 @@ dispatch_get('/me/final_report', function() {
 
 dispatch_post('/initialize', function() {
   $redis = option('redis');
+  $redis = $redis();
 
   $keys = $redis->keys('isu4:*');
   foreach ($keys as $key) {
