@@ -2,6 +2,17 @@
 require_once '../vendor/autoload.php';
 require_once 'limonade/lib/limonade.php';
 
+
+function __xhprof_save() {
+  $data = xhprof_disable();
+  $runs = new XHProfRuns_Default();
+  $runs->save_run($data, str_replace('/', '-', $_SERVER['REQUEST_URI']));
+}
+
+xhprof_enable();
+
+register_shutdown_function('__xhprof_save');
+
 function configure() {
   option('base_uri', '/');
 
@@ -90,6 +101,10 @@ function slot_key($slot) {
   return 'isu4:slot:' . $slot;
 }
 
+function report_key($aid) {
+  return 'isu4:report:' . $aid;
+}
+
 function next_ad_id() {
   $redis = option('redis');
   return $redis->incr('isu4:ad-next');
@@ -153,21 +168,13 @@ function decode_user_key($id) {
 }
 
 function get_log($id) {
-  $path = log_path($id);
-  if (!file_exists($path)) {
+  $redis = option('redis');
+  if (! $logs = $redis->lrange(report_key($id), 0, -1)) {
     return [];
   }
 
   $result = [];
-  $fp = fopen($path, 'r');
-  if (!flock($fp, LOCK_SH)) {
-    throw new RuntimeException('Cannot flock ' . $path);
-  }
-  while (!feof($fp)) {
-    $line = fgets($fp);
-    if (!$line) {
-      break;
-    }
+  foreach ($logs as $line) {
     $line = rtrim($line);
     $cols = explode("\t", $line);
     $ad_id = $cols[0];
@@ -182,7 +189,6 @@ function get_log($id) {
       'gender'=> $user_attr['gender']
     ];
   }
-  fclose($fp);
   return $result;
 }
 
@@ -213,7 +219,9 @@ dispatch_post('/slots/:slot/ads', function() {
 
   //$dir = get_dir('upload');
   $dir = "/home/isucon/webapp/php/public/mp4/";
-  $tmp_path = $dir . sprintf('/upload-%s', sha1_file($asset['tmp_name']).'.mp4');
+  $filename = sha1_file($asset['tmp_name']).'.mp4';
+  //$tmp_path = $dir . sprintf('/upload-%s', $filename);
+  $tmp_path = $dir .  $filename;
   if (!move_uploaded_file($asset['tmp_name'], $tmp_path)) {
     throw new RuntimeException('Failed to move uploaded file.');
   }
@@ -234,7 +242,7 @@ dispatch_post('/slots/:slot/ads', function() {
   ]);
 
   //$redis->set(asset_key($slot, $id), file_get_contents($tmp_path));
-  $redis->set(asset_key($slot, $id), url('mp4/'.sha1_file($asset['tmp_name']).'.mp4'));
+  $redis->set(asset_key($slot, $id), url('/mp4/'. $filename));
   $redis->rpush(slot_key($slot), $id);
   $redis->sadd(advertiser_key($advertiser_id), $key);
 
@@ -327,6 +335,7 @@ dispatch_post('/slots/:slot/ads/:id/count', function() {
 });
 
 dispatch_get('/slots/:slot/ads/:id/redirect', function() {
+  $redis = option('redis');
   $slot = params('slot');
   $id = params('id');
   $ad = get_ad($slot, $id);
@@ -336,11 +345,6 @@ dispatch_get('/slots/:slot/ads/:id/redirect', function() {
     return json(['error' => 'not_found']);
   }
 
-  $path = log_path($ad['advertiser']);
-  $fp = fopen($path, 'a');
-  if (!flock($fp, LOCK_EX)) {
-    throw new RuntimeException('Cannot flock ' . $path);
-  }
   if (isset($_COOKIE['isuad'])) {
     $isuad = $_COOKIE['isuad'];
   }
@@ -354,8 +358,7 @@ dispatch_get('/slots/:slot/ads/:id/redirect', function() {
     $ua = 'unknown';
   }
   $line = implode("\t", [$ad['id'], $isuad, $ua]) . "\n";
-  fputs($fp, $line, strlen($line));
-  fclose($fp);
+  $redis->lpush(report_key($ad['advertiser']), $line);
 
   return redirect_to_alt($ad['destination']);
 });
