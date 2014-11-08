@@ -169,7 +169,7 @@ function decode_user_key($id) {
 
 function get_log($id) {
   $redis = option('redis');
-  if (! $logs = $redis->lrange(report_key($id))) {
+  if (! $logs = $redis->lrange(report_key($id), 0, -1)) {
     return [];
   }
 
