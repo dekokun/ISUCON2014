@@ -1,0 +1,8 @@
+{
+    "name": "isucon",
+    "description": "isucon",
+    "require": {
+        "facebook/xhprof": "dev-master"
+    }
+}
+
