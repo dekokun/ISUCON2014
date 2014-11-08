@@ -213,7 +213,9 @@ dispatch_post('/slots/:slot/ads', function() {
 
   //$dir = get_dir('upload');
   $dir = "/home/isucon/webapp/php/public/mp4/";
-  $tmp_path = $dir . sprintf('/upload-%s', sha1_file($asset['tmp_name']).'.mp4');
+  $filename = sha1_file($asset['tmp_name']).'.mp4';
+  //$tmp_path = $dir . sprintf('/upload-%s', $filename);
+  $tmp_path = $dir .  $filename;
   if (!move_uploaded_file($asset['tmp_name'], $tmp_path)) {
     throw new RuntimeException('Failed to move uploaded file.');
   }
@@ -234,7 +236,7 @@ dispatch_post('/slots/:slot/ads', function() {
   ]);
 
   //$redis->set(asset_key($slot, $id), file_get_contents($tmp_path));
-  $redis->set(asset_key($slot, $id), url('mp4/'.sha1_file($asset['tmp_name']).'.mp4'));
+  $redis->set(asset_key($slot, $id), url('/mp4/'. $filename));
   $redis->rpush(slot_key($slot), $id);
   $redis->sadd(advertiser_key($advertiser_id), $key);
 
