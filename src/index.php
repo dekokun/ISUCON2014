@@ -194,6 +194,9 @@ dispatch_get('/index.html', function() {
 dispatch_get('/view.html', function() {
   return render_file(option('public_dir').'/view.html');
 });
+dispatch_get('/info', function() {
+  return phpinfo();
+});
 
 dispatch_post('/slots/:slot/ads', function() {
   $advertiser_id = advertiser_id();
