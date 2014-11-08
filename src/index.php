@@ -2,6 +2,17 @@
 require_once '../vendor/autoload.php';
 require_once 'limonade/lib/limonade.php';
 
+
+function __xhprof_save() {
+  $data = xhprof_disable();
+  $runs = new XHProfRuns_Default();
+  $runs->save_run($data, str_replace('/', '-', $_SERVER['REQUEST_URI']));
+}
+
+xhprof_enable();
+
+register_shutdown_function('__xhprof_save');
+
 function configure() {
   option('base_uri', '/');
 
