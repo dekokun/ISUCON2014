@@ -1,11 +1,12 @@
 <?php
+require_once '../vendor/autoload.php';
 require_once 'limonade/lib/limonade.php';
 
 function configure() {
   option('base_uri', '/');
 
   $redis = new Redis();
-  $redis->connect('127.0.0.1', 6379);
+  $redis->connect('10.11.54.113', 6379);
   option('redis', $redis);
 
   $config = [
@@ -127,7 +128,9 @@ function get_ad($slot, $id) {
   if (isset($ad['impressions'])) {
     $ad['impressions'] = 0;
   }
-  $ad['asset']    = url('/slots/' . $slot . '/ads/' . $id . '/asset');
+  $asset_url = $redis->get(asset_key($slot, $id));
+  
+  $ad['asset']    = $asset_url;
   $ad['counter']  = url('/slots/' . $slot . '/ads/' . $id . '/count');
   $ad['redirect'] = url('/slots/' . $slot . '/ads/' . $id . '/redirect');
 
