@@ -147,11 +147,12 @@ function get_ad($slot, $id) {
   $redis = $redis();
 
   $key = ad_key($slot, $id);
-  $ad = $redis->hgetall($key);
+  $ad = $redis->hget($key, 'slot');
 
   if (empty($ad)) {
     return null;
   }
+  $ad = $redis->hgetall($key);
 
   if (isset($ad['impressions'])) {
     $ad['impressions'] = 0;
