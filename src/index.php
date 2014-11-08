@@ -26,7 +26,7 @@ function configure() {
       return $redis;
     }
     $redis = new Redis();
-    $redis->connect('10.11.54.113', 6379);
+    $redis->pconnect('10.11.54.113', 6379);
     return $redis;
   });
 
