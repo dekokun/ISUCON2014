@@ -127,7 +127,9 @@ function get_ad($slot, $id) {
   if (isset($ad['impressions'])) {
     $ad['impressions'] = 0;
   }
-  $ad['asset']    = url('/slots/' . $slot . '/ads/' . $id . '/asset');
+  $asset_url = $redis->get(asset_key($slot, $id));
+  
+  $ad['asset']    = $asset_url;
   $ad['counter']  = url('/slots/' . $slot . '/ads/' . $id . '/count');
   $ad['redirect'] = url('/slots/' . $slot . '/ads/' . $id . '/redirect');
 
