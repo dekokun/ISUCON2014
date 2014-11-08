@@ -6,7 +6,7 @@ function configure() {
   option('base_uri', '/');
 
   $redis = new Redis();
-  $redis->connect('127.0.0.1', 6379);
+  $redis->connect('10.11.54.113', 6379);
   option('redis', $redis);
 
   $config = [
@@ -128,7 +128,9 @@ function get_ad($slot, $id) {
   if (isset($ad['impressions'])) {
     $ad['impressions'] = 0;
   }
-  $ad['asset']    = url('/slots/' . $slot . '/ads/' . $id . '/asset');
+  $asset_url = $redis->get(asset_key($slot, $id));
+  
+  $ad['asset']    = $asset_url;
   $ad['counter']  = url('/slots/' . $slot . '/ads/' . $id . '/count');
   $ad['redirect'] = url('/slots/' . $slot . '/ads/' . $id . '/redirect');
 
@@ -209,8 +211,9 @@ dispatch_post('/slots/:slot/ads', function() {
   $slot = params('slot');
   $asset = $_FILES['asset'];
 
-  $dir = get_dir('upload');
-  $tmp_path = $dir . sprintf('/upload-%s', sha1_file($asset['tmp_name']));
+  //$dir = get_dir('upload');
+  $dir = "/home/isucon/webapp/php/public/mp4/";
+  $tmp_path = $dir . sprintf('/upload-%s', sha1_file($asset['tmp_name']).'.mp4');
   if (!move_uploaded_file($asset['tmp_name'], $tmp_path)) {
     throw new RuntimeException('Failed to move uploaded file.');
   }
@@ -230,7 +233,8 @@ dispatch_post('/slots/:slot/ads', function() {
     'impressions' => 0
   ]);
 
-  $redis->set(asset_key($slot, $id), file_get_contents($tmp_path));
+  //$redis->set(asset_key($slot, $id), file_get_contents($tmp_path));
+  $redis->set(asset_key($slot, $id), url('mp4/'.sha1_file($asset['tmp_name']).'.mp4'));
   $redis->rpush(slot_key($slot), $id);
   $redis->sadd(advertiser_key($advertiser_id), $key);
 
