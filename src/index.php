@@ -5,7 +5,7 @@ function configure() {
   option('base_uri', '/');
 
   $redis = new Redis();
-  $redis->connect('127.0.0.1', 6379);
+  $redis->connect('10.11.54.113', 6379);
   option('redis', $redis);
 
   $config = [
