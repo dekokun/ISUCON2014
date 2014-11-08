@@ -1,8 +1,4 @@
 <?php
-require_once '../vendor/autoload.php';
-require_once 'limonade/lib/limonade.php';
-
-
 function __xhprof_save() {
   $data = xhprof_disable();
   $runs = new XHProfRuns_Default();
@@ -10,6 +6,10 @@ function __xhprof_save() {
 }
 
 xhprof_enable();
+require_once '../vendor/autoload.php';
+require_once 'limonade/lib/limonade.php';
+
+
 
 register_shutdown_function('__xhprof_save');
 
